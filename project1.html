@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Quiz App</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #f4f4f4;
+      margin: 0;
+      padding: 0;
+      text-align: center;
+    }
+    .container {
+      max-width: 700px;
+      margin: 50px auto;
+      background: white;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.2);
+    }
+    h1, h2 {
+      color: #333;
+    }
+    input {
+      width: 90%;
+      padding: 10px;
+      margin: 10px 0;
+    }
+    button {
+      padding: 10px 20px;
+      margin: 10px;
+      border: none;
+      background: #007BFF;
+      color: white;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #0056b3;
+    }
+    .option {
+      display: block;
+      margin: 10px 0;
+      padding: 10px;
+      background: #eee;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    .option:hover {
+      background: #ddd;
+    }
+    .correct {
+      background-color: #c8e6c9 !important;
+    }
+    .wrong {
+      background-color: #f8d7da !important;
+    }
+    .hidden {
+      display: none;
+    }
+    .progress-bar {
+      height: 20px;
+      width: 100%;
+      background-color: #ddd;
+      border-radius: 10px;
+      margin: 15px 0;
+    }
+    .progress {
+      height: 100%;
+      background-color: #28a745;
+      width: 0%;
+      border-radius: 10px;
+    }
+    #timer {
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+    label {
+      font-size: 0.9rem;
+      display: flex;
+      align-items: center;
+      justify-content: start;
+      margin-left: 5%;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Quiz App</h1>
+
+    <!-- Registration -->
+    <div id="register">
+      <h2>Register</h2>
+      <input type="email" id="regEmail" placeholder="Email" />
+      <input type="password" id="regPass" placeholder="Password" />
+      <button onclick="register()">Register</button>
+      <p>Already registered? <a href="#" onclick="toggleAuth('login')">Login here.</a></p>
+    </div>
+
+    <!-- Login -->
+    <div id="login" class="hidden">
+      <h2>Login</h2>
+      <input type="email" id="logEmail" placeholder="Email" />
+      <input type="password" id="logPass" placeholder="Password" />
+      <button onclick="login()">Login</button>
+      <p>New user? <a href="#" onclick="toggleAuth('register')">Register here.</a></p>
+    </div>
+
+    <!-- Topic Selection -->
+    <div id="topic-selection" class="hidden">
+      <h2>Select a Topic:</h2>
+      <button onclick="selectTopic('Java')">Java</button>
+      <button onclick="selectTopic('Python')">Python</button>
+      <button onclick="selectTopic('DSA')">DSA</button>
+      <button onclick="selectTopic('DBMS')">DBMS</button>
+    </div>
+
+    <!-- Difficulty Selection -->
+    <div id="difficulty-selection" class="hidden">
+      <h2>Select Difficulty:</h2>
+      <button onclick="startQuiz('Easy')">Easy</button>
+      <button onclick="startQuiz('Medium')">Medium</button>
+      <button onclick="startQuiz('Hard')">Hard</button>
+    </div>
+
+    <!-- Quiz -->
+    <div id="quiz" class="hidden">
+      <div id="timer">Time: <span id="timeLeft">60</span>s</div>
+      <div class="progress-bar"><div class="progress" id="progress"></div></div>
+      <h2 id="question"></h2>
+      <div id="options"></div>
+      <button onclick="nextQuestion()">Next</button>
+    </div>
+
+    <!-- Result -->
+    <div id="result" class="hidden">
+      <h2>Quiz Completed!</h2>
+      <p id="score"></p>
+      <div id="review"></div>
+      <button onclick="restart()">Restart</button>
+    </div>
+  </div>
+
+  <script>
+    const allQuestions = {
+      Java: {
+    Easy: [
+      { q: "What is the size of int in Java?", options: ["4 bytes", "2 bytes", "8 bytes", "Depends on system"], answer: 0 },
+      { q: "Entry point of Java program?", options: ["start()", "init()", "main()", "run()"], answer: 2 },
+      { q: "Which of the following is not a Java keyword?", options: ["static", "Boolean", "void", "private"], answer: 1 },
+      { q: "Which symbol is used to end a statement in Java?", options: [".", ":", ";", ","], answer: 2 },
+      { q: "Which method is used to print in Java?", options: ["System.out.write()", "console.log()", "System.out.println()", "echo"], answer: 2 },
+      { q: "Java is a ______ language.", options: ["compiled", "interpreted", "both", "none"], answer: 2 },
+      { q: "Which of the following is not an access modifier?", options: ["public", "private", "friendly", "protected"], answer: 2 },
+      { q: "What does JVM stand for?", options: ["Java Virtual Machine", "Java Vendor Machine", "Java Verified Memory", "Joint Virtual Module"], answer: 0 },
+      { q: "Which company developed Java?", options: ["Microsoft", "Google", "Sun Microsystems", "IBM"], answer: 2 },
+      { q: "What is the file extension for compiled Java files?", options: [".java", ".class", ".exe", ".javac"], answer: 1 }
+    ],
+    Medium: [
+      { q: "Which keyword is used to inherit a class?", options: ["this", "super", "extends", "implements"], answer: 2 },
+      { q: "Handles exceptions?", options: ["throw", "throws", "try-catch", "final"], answer: 2 },
+      { q: "What does 'static' mean in Java?", options: ["Variable", "Same value", "Shared by all instances", "None"], answer: 2 },
+      { q: "Which interface is used to sort elements?", options: ["Comparable", "Serializable", "Cloneable", "Runnable"], answer: 0 },
+      { q: "Which method is used to start a thread?", options: ["run()", "start()", "execute()", "launch()"], answer: 1 },
+      { q: "What is the return type of constructor?", options: ["void", "int", "None", "No return type"], answer: 3 },
+      { q: "Which class is the superclass of all classes?", options: ["Object", "Class", "Main", "Parent"], answer: 0 },
+      { q: "What is method overloading?", options: ["Same method name, different params", "Same method in subclass", "Abstract method", "None"], answer: 0 },
+      { q: "Which operator is used for object comparison?", options: ["==", "equals()", "!=", "<>"], answer: 1 },
+      { q: "What is the use of final keyword?", options: ["Cannot inherit", "Cannot override", "Constant", "All of the above"], answer: 3 }
+    ],
+    Hard: [
+      { q: "OOPs concept?", options: ["Encapsulation", "Polymorphism", "Inheritance", "All"], answer: 3 },
+      { q: "Compiles Java code?", options: ["JDK", "JVM", "JRE", "javac"], answer: 3 },
+      { q: "What is the default value of int?", options: ["0", "null", "undefined", "-1"], answer: 0 },
+      { q: "Which of the following is a checked exception?", options: ["NullPointerException", "IOException", "ArithmeticException", "ArrayIndexOutOfBoundsException"], answer: 1 },
+      { q: "What does 'super' keyword refer to?", options: ["Parent class", "Child class", "Interface", "Object class"], answer: 0 },
+      { q: "Which class is used for mutable strings?", options: ["String", "StringBuffer", "StringBuilder", "Both B and C"], answer: 3 },
+      { q: "What is garbage collection?", options: ["Deleting objects manually", "Removing unused objects", "Memory leak", "Cleaning stack"], answer: 1 },
+      { q: "Which keyword is used to stop inheritance?", options: ["final", "static", "sealed", "private"], answer: 0 },
+      { q: "Java supports multiple inheritance via?", options: ["Classes", "Interfaces", "Abstract classes", "None"], answer: 1 },
+      { q: "Which package contains Scanner class?", options: ["java.io", "java.util", "java.lang", "java.net"], answer: 1 }
+    ]
+  },
+      Python: {
+    Easy: [
+      { q: "Output of 2**3?", options: ["6", "8", "9", "5"], answer: 1 },
+      { q: "Defines function?", options: ["func", "def", "function", "define"], answer: 1 },
+      { q: "Which of these is a loop in Python?", options: ["for", "foreach", "repeat", "loop"], answer: 0 },
+      { q: "Python is:", options: ["Compiled", "Interpreted", "Both", "None"], answer: 1 },
+      { q: "Which data type is used to store text?", options: ["int", "str", "bool", "float"], answer: 1 },
+      { q: "What is output of len('hello')?", options: ["4", "5", "6", "error"], answer: 1 },
+      { q: "Which symbol is used for comments?", options: ["//", "#", "/*", "--"], answer: 1 },
+      { q: "How do you start a block?", options: ["{}", "()", ":", "endif"], answer: 2 },
+      { q: "What is used to import a module?", options: ["using", "include", "import", "require"], answer: 2 },
+      { q: "Which of these is a list?", options: ["{}", "[]", "()", "<>"], answer: 1 }
+    ],
+    Medium: [
+      { q: "Which is mutable?", options: ["tuple", "str", "list", "int"], answer: 2 },
+      { q: "Single-line comment?", options: ["//", "#", "/*", "--"], answer: 1 },
+      { q: "What does range(5) return?", options: ["1-5", "0-4", "1-4", "0-5"], answer: 1 },
+      { q: "What is the output of bool('False')?", options: ["False", "True", "Error", "None"], answer: 1 },
+      { q: "Which operator is used for exponent?", options: ["^", "**", "*", "//"], answer: 1 },
+      { q: "How to handle exceptions?", options: ["try-except", "try-catch", "if-else", "def"], answer: 0 },
+      { q: "Which function converts string to int?", options: ["toInt()", "int()", "str()", "parseInt()"], answer: 1 },
+      { q: "What does len() do?", options: ["Length", "Loop", "Check", "None"], answer: 0 },
+      { q: "How to write multi-line comment?", options: ["'''", "//", "#", "--"], answer: 0 },
+      { q: "Which is used for function docstring?", options: ["#", "//", "'''", "/**/"], answer: 2 }
+    ],
+    Hard: [
+      { q: "List is:", options: ["Mutable", "Immutable", "Static", "None"], answer: 0 },
+      { q: "Tuple is:", options: ["Mutable", "Immutable", "None", "Static"], answer: 1 },
+      { q: "What is lambda?", options: ["Anonymous function", "Named function", "Loop", "Class"], answer: 0 },
+      { q: "Which method adds an item to a list?", options: ["append()", "insert()", "add()", "push()"], answer: 0 },
+      { q: "Which of these is a set?", options: ["()", "[]", "{}", "<>"], answer: 2 },
+      { q: "What is __init__?", options: ["Destructor", "Constructor", "Function", "Variable"], answer: 1 },
+      { q: "Which operator is identity?", options: ["==", "is", "in", "!="], answer: 1 },
+      { q: "Which method removes item from list?", options: ["del", "remove()", "pop()", "all of these"], answer: 3 },
+      { q: "Which module is used for regex?", options: ["re", "regex", "match", "pyregex"], answer: 0 },
+      { q: "What is GIL?", options: ["Global Interpreter Lock", "General Integer Lock", "Global Index List", "None"], answer: 0 }
+    ]
+  },
+      DSA: {
+        Easy: [
+          { q: "Stack follows?", options: ["FIFO", "LIFO", "LILO", "None"], answer: 1 },
+          { q: "Which is linear?", options: ["Tree", "Graph", "Array", "Heap"], answer: 2 },
+          { q: "Which uses queue?", options: ["BFS", "DFS", "Dijkstra", "Merge Sort"], answer: 0 },
+          { q: "Full form of DSA?", options: ["Data Structures and Algorithms", "Design Software Algo", "Dev Structure Array", "None"], answer: 0 },
+          { q: "Which is not sorting algo?", options: ["Quick", "Heap", "Tree", "Bubble"], answer: 2 },
+          { q: "Searching in BST?", options: ["O(log n)", "O(n^2)", "O(n log n)", "O(n^3)"], answer: 0 },
+          { q: "Stack overflow means?", options: ["Memory full", "Loop error", "Null pointer", "Compilation error"], answer: 0 },
+          { q: "Linked list node has?", options: ["Data & pointer", "Only data", "Only pointer", "None"], answer: 0 },
+          { q: "Which is dynamic?", options: ["Array", "Linked List", "Both", "None"], answer: 1 },
+          { q: "Which is used in recursion?", options: ["Stack", "Queue", "Heap", "Array"], answer: 0 }
+        ],
+        Medium: [
+      { q: "Which data structure uses FIFO?", options: ["Stack", "Queue", "Array", "Tree"], answer: 1 },
+      { q: "Which is not a linear data structure?", options: ["Array", "Linked List", "Tree", "Stack"], answer: 2 },
+      { q: "Time complexity of binary search?", options: ["O(n)", "O(log n)", "O(n log n)", "O(1)"], answer: 1 },
+      { q: "Which sorting is stable?", options: ["Quick", "Merge", "Heap", "Selection"], answer: 1 },
+      { q: "Which uses LIFO?", options: ["Queue", "Stack", "Tree", "Heap"], answer: 1 },
+      { q: "Best case of bubble sort?", options: ["O(n^2)", "O(n log n)", "O(n)", "O(1)"], answer: 2 },
+      { q: "What is height of tree?", options: ["Edges", "Nodes", "Levels", "Leaves"], answer: 0 },
+      { q: "In-order of BST gives?", options: ["Sorted order", "Pre-order", "Post-order", "Random"], answer: 0 },
+      { q: "DFS uses?", options: ["Stack", "Queue", "Array", "Heap"], answer: 0 },
+      { q: "Queue using stack takes?", options: ["O(n)", "O(1)", "O(log n)", "O(n^2)"], answer: 0 }
+    ],
+    Hard: [
+      { q: "Which is not self-balancing BST?", options: ["AVL", "Red-Black", "Binary Tree", "Splay"], answer: 2 },
+      { q: "Which DS uses two pointers?", options: ["Stack", "Queue", "Linked List", "Heap"], answer: 2 },
+      { q: "KMP algorithm is for?", options: ["Sorting", "Searching", "Pattern matching", "Traversal"], answer: 2 },
+      { q: "Heap sort uses?", options: ["Binary Tree", "Heap", "Stack", "Queue"], answer: 1 },
+      { q: "Hashing best case complexity?", options: ["O(1)", "O(n)", "O(log n)", "O(n^2)"], answer: 0 },
+      { q: "Time for inserting in AVL tree?", options: ["O(1)", "O(n)", "O(log n)", "O(n log n)"], answer: 2 },
+      { q: "DFS uses recursion or?", options: ["Stack", "Queue", "Array", "List"], answer: 0 },
+      { q: "Min heap root is?", options: ["Maximum", "Minimum", "Middle", "Random"], answer: 1 },
+      { q: "Best structure for LRU?", options: ["Stack", "Queue", "HashMap + DLL", "Array"], answer: 2 },
+      { q: "Dijkstra's algorithm uses?", options: ["Queue", "Stack", "Min Heap", "Hash"], answer: 2 }
+    ]
+  },
+
+      DBMS: {
+        Easy: [
+          { q: "DBMS stands for?", options: ["Database Management System", "Data Big Managed Sys", "DataBase Model Setup", "None"], answer: 0 },
+          { q: "Which is not DBMS?", options: ["MySQL", "MongoDB", "Excel", "Oracle"], answer: 2 },
+          { q: "SQL stands for?", options: ["Structured Query Language", "Simple Query Language", "Standard Question Language", "None"], answer: 0 },
+          { q: "Which is DDL?", options: ["CREATE", "SELECT", "INSERT", "UPDATE"], answer: 0 },
+          { q: "Primary key is?", options: ["Unique & Not Null", "Only Unique", "Only Not Null", "None"], answer: 0 },
+          { q: "Which ensures integrity?", options: ["Constraints", "Indexes", "Triggers", "Views"], answer: 0 },
+          { q: "Which is NoSQL DB?", options: ["MongoDB", "MySQL", "Oracle", "PostgreSQL"], answer: 0 },
+          { q: "Redundancy means?", options: ["Repetition", "Efficiency", "Indexing", "Sorting"], answer: 0 },
+          { q: "Normalization removes?", options: ["Redundancy", "Keys", "Tables", "Indexes"], answer: 0 },
+          { q: "Which is RDBMS?", options: ["MySQL", "MongoDB", "Excel", "Redis"], answer: 0 }
+        ],
+        Medium: [
+      { q: "What does RDBMS stand for?", options: ["Random DBMS", "Relational DBMS", "Rapid DBMS", "Remote DBMS"], answer: 1 },
+      { q: "Primary key allows?", options: ["Null", "Duplicates", "Unique & Not Null", "None"], answer: 2 },
+      { q: "Which normal form removes partial dependency?", options: ["1NF", "2NF", "3NF", "BCNF"], answer: 1 },
+      { q: "Which SQL clause is used to filter?", options: ["ORDER BY", "GROUP BY", "WHERE", "HAVING"], answer: 2 },
+      { q: "Which language is DDL?", options: ["SELECT", "INSERT", "CREATE", "UPDATE"], answer: 2 },
+      { q: "Which key is unique but can be null?", options: ["Primary", "Candidate", "Foreign", "Unique"], answer: 3 },
+      { q: "SQL injection is a?", options: ["DB error", "Attack", "Syntax", "Server rule"], answer: 1 },
+      { q: "Which command is DML?", options: ["CREATE", "DROP", "INSERT", "ALTER"], answer: 2 },
+      { q: "Transaction property of consistency means?", options: ["Always correct", "Fast", "Repeatable", "Indeterminate"], answer: 0 },
+      { q: "Which joins return unmatched from left?", options: ["Inner Join", "Right Join", "Left Join", "Cross Join"], answer: 2 }
+    ],
+    Hard: [
+      { q: "Which isolation level prevents dirty read?", options: ["Read Uncommitted", "Read Committed", "Repeatable Read", "Serializable"], answer: 1 },
+      { q: "BCNF is stricter than?", options: ["1NF", "2NF", "3NF", "All"], answer: 2 },
+      { q: "Which normal form handles transitive dep?", options: ["2NF", "3NF", "1NF", "BCNF"], answer: 1 },
+      { q: "What is deadlock?", options: ["Slow query", "No access", "Circular wait", "Low memory"], answer: 2 },
+      { q: "What is cardinality?", options: ["Attributes", "Data types", "Number of rows", "Number of columns"], answer: 2 },
+      { q: "Which is a constraint?", options: ["FOREIGN KEY", "WHILE", "BEGIN", "TRIGGER"], answer: 0 },
+      { q: "Which of these is a transaction control command?", options: ["ROLLBACK", "SELECT", "INSERT", "WHERE"], answer: 0 },
+      { q: "Trigger is executed?", options: ["Manually", "With job", "On condition/event", "On compile"], answer: 2 },
+      { q: "What is the purpose of index?", options: ["Reduce storage", "Speed up search", "Delete fast", "Encrypt data"], answer: 1 },
+      { q: "Normalization avoids?", options: ["Duplication", "Data integrity", "Constraints", "Indexes"], answer: 0 }
+    ]
+  }
+};
+
+    let users = JSON.parse(localStorage.getItem("users") || "{}");
+    let currentUser = "";
+    let selectedTopic = "";
+    let selectedDifficulty = "";
+    let currentQuestions = [];
+    let currentIndex = 0;
+    let score = 0;
+    let reviewList = [];
+    let timer;
+    let timeLeft = 60;
+
+    function toggleAuth(show) {
+      document.getElementById("register").classList.toggle("hidden", show !== "register");
+      document.getElementById("login").classList.toggle("hidden", show !== "login");
+    }
+
+    function togglePassword(id) {
+      const input = document.getElementById(id);
+      input.type = input.type === "password" ? "text" : "password";
+    }
+
+    function register() {
+      const email = document.getElementById("regEmail").value;
+      const pass = document.getElementById("regPass").value;
+      if (!email || !pass) return alert("Please fill both fields");
+      if (users[email]) return alert("User already exists");
+      users[email] = pass;
+      localStorage.setItem("users", JSON.stringify(users));
+      alert("Registered! Please log in.");
+      toggleAuth("login");
+    }
+
+    function login() {
+      const email = document.getElementById("logEmail").value;
+      const pass = document.getElementById("logPass").value;
+      if (users[email] === pass) {
+        currentUser = email;
+        document.getElementById("login").classList.add("hidden");
+        document.getElementById("topic-selection").classList.remove("hidden");
+      } else {
+        alert("Invalid credentials");
+      }
+    }
+
+    function selectTopic(topic) {
+      selectedTopic = topic;
+      document.getElementById("topic-selection").classList.add("hidden");
+      document.getElementById("difficulty-selection").classList.remove("hidden");
+    }
+
+    function startQuiz(difficulty) {
+      selectedDifficulty = difficulty;
+      currentQuestions = shuffle([...allQuestions[selectedTopic][difficulty]]);
+      currentIndex = 0;
+      score = 0;
+      reviewList = [];
+      timeLeft = 60;
+      document.getElementById("difficulty-selection").classList.add("hidden");
+      document.getElementById("quiz").classList.remove("hidden");
+      startTimer();
+      showQuestion();
+    }
+
+    function shuffle(arr) {
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    }
+
+    function startTimer() {
+      timer = setInterval(() => {
+        document.getElementById("timeLeft").innerText = --timeLeft;
+        if (timeLeft <= 0) finishQuiz();
+      }, 1000);
+    }
+
+    function showQuestion() {
+      const q = currentQuestions[currentIndex];
+      document.getElementById("question").innerText = q.q;
+      const optionsDiv = document.getElementById("options");
+      optionsDiv.innerHTML = "";
+      q.options.forEach((opt, idx) => {
+        const div = document.createElement("div");
+        div.className = "option";
+        div.innerText = opt;
+        div.onclick = () => checkAnswer(idx, div);
+        optionsDiv.appendChild(div);
+      });
+      document.getElementById("progress").style.width = `${(currentIndex / currentQuestions.length) * 100}%`;
+    }
+
+    function checkAnswer(selected, div) {
+      const correct = currentQuestions[currentIndex].answer;
+      document.querySelectorAll(".option").forEach((el, idx) => {
+        if (idx === correct) el.classList.add("correct");
+        if (idx === selected && selected !== correct) {
+          el.classList.add("wrong");
+          reviewList.push({ ...currentQuestions[currentIndex], selected });
+        }
+        el.onclick = null;
+      });
+    }
+
+    function nextQuestion() {
+      currentIndex++;
+      if (currentIndex < currentQuestions.length) {
+        showQuestion();
+      } else {
+        finishQuiz();
+      }
+    }
+
+    function finishQuiz() {
+      clearInterval(timer);
+      document.getElementById("quiz").classList.add("hidden");
+      document.getElementById("result").classList.remove("hidden");
+      document.getElementById("score").innerText = `Your Score: ${currentQuestions.length - reviewList.length}/${currentQuestions.length}`;
+      const reviewDiv = document.getElementById("review");
+      reviewDiv.innerHTML = "<h3>Review Wrong Answers:</h3>";
+      reviewList.forEach(q => {
+        const div = document.createElement("div");
+        div.innerHTML = `<strong>${q.q}</strong><br/>Your Answer: ${q.options[q.selected]}<br/>Correct Answer: ${q.options[q.answer]}<hr/>`;
+        reviewDiv.appendChild(div);
+      });
+    }
+
+    function restart() {
+      document.getElementById("result").classList.add("hidden");
+      document.getElementById("topic-selection").classList.remove("hidden");
+    }
+  </script>
+</body>
+</html>
