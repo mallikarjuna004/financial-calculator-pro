@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Financial Calculator Pro</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh; padding: 20px;
+    }
+    .container {
+      max-width: 1200px; margin: 0 auto;
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+      gap: 20px;
+    }
+    .card {
+      background: white; border-radius: 16px; padding: 24px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2); animation: fadeIn 0.3s ease-out;
+    }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    h2 { color: #333; margin-bottom: 20px; font-size: 24px; }
+    h3 { color: #555; margin-bottom: 16px; font-size: 18px; }
+    .input-group { margin-bottom: 16px; }
+    label { display: block; margin-bottom: 6px; color: #555; font-weight: 500; font-size: 14px; }
+    input, select {
+      width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px; transition: all 0.2s;
+    }
+    input:focus, select:focus {
+      outline: none; border-color: #667eea; box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+    .button-group { display: flex; gap: 10px; margin-top: 20px; }
+    button {
+      flex: 1; padding: 14px; border: none; border-radius: 8px;
+      font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s;
+    }
+    .btn-calculate {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;
+    }
+    .btn-calculate:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4); }
+    .btn-reset { background: #f5f5f5; color: #666; }
+    .btn-reset:hover { background: #e0e0e0; }
+    .result {
+      margin-top: 20px; padding: 20px;
+      background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
+      border-radius: 12px; opacity: 0; transform: scale(0.95); transition: all 0.3s;
+    }
+    .result.show { opacity: 1; transform: scale(1); }
+    .result-title { font-size: 14px; color: #666; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+    .result-value { font-size: 32px; font-weight: 700; color: #667eea; margin-bottom: 8px; }
+    .result-details { color: #666; font-size: 14px; line-height: 1.6; }
+    .error { color: #dc3545; text-align: center; font-weight: 500; }
+    #chartCanvas { max-height: 300px; }
+    .chart-empty {
+      display: flex; align-items: center; justify-content: center; height: 200px;
+      color: #999; font-style: italic;
+    }
+    .history-list { max-height: 400px; overflow-y: auto; }
+    .history-item {
+      padding: 12px; background: #f8f9fa; border-radius: 8px; margin-bottom: 8px; transition: all 0.2s;
+    }
+    .history-item:hover { background: #e9ecef; transform: translateX(4px); }
+    .history-type { font-weight: 600; color: #667eea; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .history-details { font-size: 12px; color: #999; margin-top: 4px; }
+    .empty-history { text-align: center; color: #999; padding: 40px; font-style: italic; }
+    .btn-clear-history { width: 100%; margin-top: 12px; background: #dc3545; color: white; }
+    .btn-clear-history:hover { background: #c82333; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <h2>💸 Financial Calculator</h2>
+      <div class="input-group">
+        <label for="calcType">Calculation Type</label>
+        <select id="calcType">
+          <option value="simple">Simple Interest</option>
+          <option value="compound">Compound Interest</option>
+          <option value="emi">Loan EMI</option>
+          <option value="currency">Currency Conversion</option>
+          <option value="sip">SIP Calculator</option>
+        </select>
+      </div>
+
+      <div id="financeInputs">
+        <div class="input-group">
+          <label id="principalLabel">Principal Amount (₹)</label>
+          <input type="number" id="principal" placeholder="e.g., 100000" step="any" />
+        </div>
+        <div class="input-group">
+          <label>Interest Rate (% per year)</label>
+          <input type="number" id="rate" placeholder="e.g., 8.5" step="0.01" />
+        </div>
+        <div class="input-group">
+          <label>Time Period (years)</label>
+          <input type="number" id="time" placeholder="e.g., 5" step="0.1" />
+        </div>
+      </div>
+
+      <div id="currencyInputs" style="display: none;">
+        <div class="input-group">
+          <label>Amount</label>
+          <input type="number" id="amount" placeholder="Enter amount" step="any" />
+        </div>
+        <div class="input-group">
+          <label>From Currency</label>
+          <select id="fromCurrency">
+            <option value="INR">🇮🇳 INR</option>
+            <option value="USD" selected>🇺🇸 USD</option>
+            <option value="EUR">🇪🇺 EUR</option>
+            <option value="GBP">🇬🇧 GBP</option>
+            <option value="JPY">🇯🇵 JPY</option>
+            <option value="AUD">🇦🇺 AUD</option>
+          </select>
+        </div>
+        <div class="input-group">
+          <label>To Currency</label>
+          <select id="toCurrency">
+            <option value="INR" selected>🇮🇳 INR</option>
+            <option value="USD">🇺🇸 USD</option>
+            <option value="EUR">🇪🇺 EUR</option>
+            <option value="GBP">🇬🇧 GBP</option>
+            <option value="JPY">🇯🇵 JPY</option>
+            <option value="AUD">🇦🇺 AUD</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="button-group">
+        <button class="btn-calculate" id="calcBtn">Calculate 🧮</button>
+        <button class="btn-reset" id="resetBtn">Reset 🔄</button>
+      </div>
+      
+      <div class="result" id="result"></div>
+    </div>
+
+    <div class="card">
+      <h3>📊 Visualization</h3>
+      <canvas id="chartCanvas"></canvas>
+      <div id="chartEmpty" class="chart-empty">Calculate to see visualization</div>
+    </div>
+
+    <div class="card">
+      <h3>📜 Calculation History</h3>
+      <div class="history-list" id="historyList">
+        <div class="empty-history">No calculations yet</div>
+      </div>
+      <button class="btn-clear-history" id="clearBtn" style="display: none;">Clear History</button>
+    </div>
+  </div>
+
+  <script>
+    const App = {
+      chart: null, history: [], rates: {},
+      
+      init() {
+        this.cacheElements(); this.bindEvents(); this.fetchRates();
+      },
+
+      cacheElements() {
+        this.els = {
+          calcType: document.getElementById('calcType'),
+          principal: document.getElementById('principal'),
+          rate: document.getElementById('rate'),
+          time: document.getElementById('time'),
+          amount: document.getElementById('amount'),
+          fromCurrency: document.getElementById('fromCurrency'),
+          toCurrency: document.getElementById('toCurrency'),
+          result: document.getElementById('result'),
+          chartCanvas: document.getElementById('chartCanvas'),
+          chartEmpty: document.getElementById('chartEmpty'),
+          historyList: document.getElementById('historyList'),
+          clearBtn: document.getElementById('clearBtn'),
+          calcBtn: document.getElementById('calcBtn'),
+          resetBtn: document.getElementById('resetBtn'),
+          financeInputs: document.getElementById('financeInputs'),
+          currencyInputs: document.getElementById('currencyInputs'),
+          principalLabel: document.getElementById('principalLabel')
+        };
+      },
+
+      bindEvents() {
+        this.els.calcType.addEventListener('change', () => this.updateUI());
+        this.els.calcBtn.addEventListener('click', () => this.calculate());
+        this.els.resetBtn.addEventListener('click', () => this.reset());
+        this.els.clearBtn.addEventListener('click', () => this.clearHistory());
+      },
+
+      updateUI() {
+        const type = this.els.calcType.value;
+        const isCurrency = type === 'currency';
+        this.els.financeInputs.style.display = isCurrency ? 'none' : 'block';
+        this.els.currencyInputs.style.display = isCurrency ? 'block' : 'none';
+        if (type === 'emi') this.els.principalLabel.textContent = 'Loan Amount (₹)';
+        else if (type === 'sip') this.els.principalLabel.textContent = 'Monthly Investment (₹)';
+        else this.els.principalLabel.textContent = 'Principal Amount (₹)';
+      },
+
+      async fetchRates() {
+        try {
+          const res = await fetch('https://api.exchangerate-api.com/v4/latest/USD');
+          const data = await res.json();
+          this.rates = data.rates;
+        } catch {
+          this.rates = { INR: 83.12, USD: 1, EUR: 0.92, GBP: 0.79, JPY: 149.5, AUD: 1.54 };
+        }
+      },
+
+      reset() {
+        [this.els.principal, this.els.rate, this.els.time, this.els.amount].forEach(el => el.value = '');
+        this.els.result.classList.remove('show'); this.els.result.innerHTML = '';
+        this.destroyChart();
+      },
+
+      async calculate() {
+        const type = this.els.calcType.value;
+        if (type === 'currency') await this.calculateCurrency(); else this.calculateFinance();
+      },
+
+      async calculateCurrency() {
+        const amount = parseFloat(this.els.amount.value);
+        const from = this.els.fromCurrency.value;
+        const to = this.els.toCurrency.value;
+        if (!this.validate(amount)) return;
+        if (Object.keys(this.rates).length === 0) await this.fetchRates();
+        const converted = (amount / this.rates[from]) * this.rates[to];
+        const rate = this.rates[to] / this.rates[from];
+        this.showResult(`
+          <div class="result-title">Currency Conversion</div>
+          <div class="result-value">${converted.toFixed(2)} ${to}</div>
+          <div class="result-details">1 ${from} = ${rate.toFixed(4)} ${to}</div>
+        `);
+        this.addHistory({ type: 'currency', amount, from, to, converted, rate });
+      },
+
+      calculateFinance() {
+        const p = parseFloat(this.els.principal.value);
+        const r = parseFloat(this.els.rate.value);
+        const t = parseFloat(this.els.time.value);
+        const type = this.els.calcType.value;
+        if (!this.validate(p, r, t)) return;
+        const calculations = {
+          simple: () => {
+            const interest = (p * r * t) / 100, total = p + interest;
+            this.showResult(`<div class="result-title">Simple Interest</div>
+              <div class="result-value">₹${interest.toLocaleString('en-IN',{maximumFractionDigits:2})}</div>
+              <div class="result-details">Total: ₹${total.toLocaleString('en-IN',{maximumFractionDigits:2})}</div>`);
+            this.createPieChart(['Principal','Interest'],[p,interest],['#667eea','#28a745']);
+          },
+          compound: () => {
+            const amount = p * Math.pow(1 + r / 100, t);
+            const interest = amount - p;
+            this.showResult(`<div class="result-title">Compound Interest</div>
+              <div class="result-value">₹${interest.toLocaleString('en-IN',{maximumFractionDigits:2})}</div>
+              <div class="result-details">Total: ₹${amount.toLocaleString('en-IN',{maximumFractionDigits:2})}</div>`);
+            this.createLineChart(p, r, t);
+          },
+          emi: () => {
+            const monthlyRate = r / (12 * 100), months = t * 12;
+            const emi = (p * monthlyRate * Math.pow(1 + monthlyRate, months)) /
+              (Math.pow(1 + monthlyRate, months) - 1);
+            const totalPayment = emi * months, totalInterest = totalPayment - p;
+            this.showResult(`<div class="result-title">Monthly EMI</div>
+              <div class="result-value">₹${emi.toLocaleString('en-IN',{maximumFractionDigits:2})}</div>
+              <div class="result-details">Total Payment: ₹${totalPayment.toLocaleString('en-IN',{maximumFractionDigits:2})}<br>
+              Total Interest: ₹${totalInterest.toLocaleString('en-IN',{maximumFractionDigits:2})}</div>`);
+            this.createPieChart(['Principal','Interest'],[p,totalInterest],['#667eea','#dc3545']);
+          },
+          sip: () => {
+            const monthlyInvestment = p, annualRate = r, years = t;
+            const months = years * 12, monthlyRate = annualRate / 12 / 100;
+            const futureValue = monthlyInvestment * ((Math.pow(1 + monthlyRate, months) - 1) / monthlyRate) * (1 + monthlyRate);
+            const investedAmount = monthlyInvestment * months;
+            const gain = futureValue - investedAmount;
+            this.showResult(`<div class="result-title">SIP Investment</div>
+              <div class="result-value">₹${futureValue.toLocaleString('en-IN',{maximumFractionDigits:2})}</div>
+              <div class="result-details">Invested: ₹${investedAmount.toLocaleString('en-IN',{maximumFractionDigits:2})}<br>
+              Estimated Returns: ₹${gain.toLocaleString('en-IN',{maximumFractionDigits:2})}</div>`);
+            this.createBarChart(monthlyInvestment, monthlyRate, years);
+          }
+        };
+        calculations[type](); this.addHistory({ type, p, r, t });
+      },
+
+      validate(...values) {
+        if (values.some(v => isNaN(v) || v <= 0)) {
+          this.showResult('<div class="error">⚠ Please enter valid positive numbers</div>');
+          return false;
+        }
+        return true;
+      },
+
+      showResult(html) {
+        this.els.result.innerHTML = html; this.els.result.classList.add('show');
+      },
+
+      createPieChart(labels, data, colors) {
+        this.destroyChart(); this.els.chartCanvas.style.display = 'block'; this.els.chartEmpty.style.display = 'none';
+        this.chart = new Chart(this.els.chartCanvas, { type: 'doughnut',
+          data: { labels, datasets: [{ data, backgroundColor: colors, borderWidth: 0 }] },
+          options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'bottom' } } }
+        });
+      },
+
+      createLineChart(p, r, t) {
+        this.destroyChart(); const years = [], amounts = [];
+        for (let i = 0; i <= t; i++) { years.push(i === 0 ? 'Start' : `Year ${i}`); amounts.push(p * Math.pow(1 + r / 100, i)); }
+        this.els.chartCanvas.style.display = 'block'; this.els.chartEmpty.style.display = 'none';
+        this.chart = new Chart(this.els.chartCanvas, {
+          type: 'line',
+          data: { labels: years, datasets: [{ label: 'Amount (₹)', data: amounts, borderColor: '#667eea', backgroundColor: 'rgba(102,126,234,0.1)', tension: 0.4, fill: true }] },
+          options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { display: false } } }
+        });
+      },
+
+      createBarChart(monthlyInvestment, monthlyRate, years) {
+        this.destroyChart(); const labels = [], invested = [], projected = [];
+        for (let i = 1; i <= years; i++) {
+          const months = i * 12;
+          const fv = monthlyInvestment * ((Math.pow(1 + monthlyRate, months) - 1) / monthlyRate) * (1 + monthlyRate);
+          labels.push(`Year ${i}`); invested.push(monthlyInvestment * months); projected.push(fv);
+        }
+        this.els.chartCanvas.style.display = 'block'; this.els.chartEmpty.style.display = 'none';
+        this.chart = new Chart(this.els.chartCanvas, {
+          type: 'bar',
+          data: { labels, datasets: [
+            { label: 'Invested Amount', data: invested, backgroundColor: '#667eea' },
+            { label: 'Projected Value', data: projected, backgroundColor: '#00c853' }
+          ]},
+          options: { responsive: true, scales: { y: { beginAtZero: true } }, plugins: { legend: { position: 'bottom' } } }
+        });
+      },
+
+      destroyChart() {
+        if (this.chart) { this.chart.destroy(); this.chart = null; }
+        this.els.chartCanvas.style.display = 'none'; this.els.chartEmpty.style.display = 'flex';
+      },
+
+      addHistory(item) {
+        this.history.unshift({ ...item, timestamp: new Date().toLocaleString() });
+        if (this.history.length > 10) this.history.pop(); this.displayHistory();
+      },
+      displayHistory() {
+        if (this.history.length === 0) {
+          this.els.historyList.innerHTML = '<div class="empty-history">No calculations yet</div>';
+          this.els.clearBtn.style.display = 'none'; return;
+        }
+        this.els.clearBtn.style.display = 'block';
+        this.els.historyList.innerHTML = this.history.map(item => {
+          const typeLabel = item.type === 'currency' ? '💱 Currency' :
+                            item.type === 'emi' ? '🏠 EMI' :
+                            item.type === 'compound' ? '📈 Compound' :
+                            item.type === 'sip' ? '📊 SIP' : '💰 Simple';
+          return `<div class="history-item"><div class="history-type">${typeLabel}</div><div class="history-details">${item.timestamp}</div></div>`;
+        }).join('');
+      },
+      clearHistory() { this.history = []; this.displayHistory(); }
+    };
+    App.init();
+  </script>
+</body>
+</html>
