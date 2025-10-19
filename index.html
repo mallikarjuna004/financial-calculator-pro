@@ -98,6 +98,16 @@
           <label>Time Period (years)</label>
           <input type="number" id="time" placeholder="e.g., 5" step="0.1" />
         </div>
+        <div class="input-group" id="compoundFreqGroup" style="display: none;">
+          <label>Compounding Frequency</label>
+          <select id="compoundFreq">
+            <option value="1">Annually (1 time/year)</option>
+            <option value="2">Semi-Annually (2 times/year)</option>
+            <option value="4" selected>Quarterly (4 times/year)</option>
+            <option value="12">Monthly (12 times/year)</option>
+            <option value="365">Daily (365 times/year)</option>
+          </select>
+        </div>
       </div>
 
       <div id="currencyInputs" style="display: none;">
@@ -166,6 +176,8 @@
           principal: document.getElementById('principal'),
           rate: document.getElementById('rate'),
           time: document.getElementById('time'),
+          compoundFreq: document.getElementById('compoundFreq'),
+          compoundFreqGroup: document.getElementById('compoundFreqGroup'),
           amount: document.getElementById('amount'),
           fromCurrency: document.getElementById('fromCurrency'),
           toCurrency: document.getElementById('toCurrency'),
@@ -192,8 +204,12 @@
       updateUI() {
         const type = this.els.calcType.value;
         const isCurrency = type === 'currency';
+        const isCompound = type === 'compound';
+        
         this.els.financeInputs.style.display = isCurrency ? 'none' : 'block';
         this.els.currencyInputs.style.display = isCurrency ? 'block' : 'none';
+        this.els.compoundFreqGroup.style.display = isCompound ? 'block' : 'none';
+        
         if (type === 'emi') this.els.principalLabel.textContent = 'Loan Amount (₹)';
         else if (type === 'sip') this.els.principalLabel.textContent = 'Monthly Investment (₹)';
         else this.els.principalLabel.textContent = 'Principal Amount (₹)';
@@ -242,6 +258,7 @@
         const t = parseFloat(this.els.time.value);
         const type = this.els.calcType.value;
         if (!this.validate(p, r, t)) return;
+        
         const calculations = {
           simple: () => {
             const interest = (p * r * t) / 100, total = p + interest;
@@ -251,12 +268,23 @@
             this.createPieChart(['Principal','Interest'],[p,interest],['#667eea','#28a745']);
           },
           compound: () => {
-            const amount = p * Math.pow(1 + r / 100, t);
+            const n = parseInt(this.els.compoundFreq.value);
+            const amount = p * Math.pow(1 + (r / 100) / n, n * t);
             const interest = amount - p;
-            this.showResult(`<div class="result-title">Compound Interest</div>
+            
+            const freqText = {
+              '1': 'Annually',
+              '2': 'Semi-Annually',
+              '4': 'Quarterly',
+              '12': 'Monthly',
+              '365': 'Daily'
+            }[n];
+            
+            this.showResult(`<div class="result-title">Compound Interest (${freqText})</div>
               <div class="result-value">₹${interest.toLocaleString('en-IN',{maximumFractionDigits:2})}</div>
-              <div class="result-details">Total: ₹${amount.toLocaleString('en-IN',{maximumFractionDigits:2})}</div>`);
-            this.createLineChart(p, r, t);
+              <div class="result-details">Total: ₹${amount.toLocaleString('en-IN',{maximumFractionDigits:2})}<br>
+              Compounded ${n} time(s) per year</div>`);
+            this.createLineChart(p, r, t, n);
           },
           emi: () => {
             const monthlyRate = r / (12 * 100), months = t * 12;
@@ -282,7 +310,8 @@
             this.createBarChart(monthlyInvestment, monthlyRate, years);
           }
         };
-        calculations[type](); this.addHistory({ type, p, r, t });
+        calculations[type](); 
+        this.addHistory({ type, p, r, t, n: type === 'compound' ? parseInt(this.els.compoundFreq.value) : null });
       },
 
       validate(...values) {
@@ -305,9 +334,12 @@
         });
       },
 
-      createLineChart(p, r, t) {
+      createLineChart(p, r, t, n) {
         this.destroyChart(); const years = [], amounts = [];
-        for (let i = 0; i <= t; i++) { years.push(i === 0 ? 'Start' : `Year ${i}`); amounts.push(p * Math.pow(1 + r / 100, i)); }
+        for (let i = 0; i <= t; i++) { 
+          years.push(i === 0 ? 'Start' : `Year ${i}`); 
+          amounts.push(p * Math.pow(1 + (r / 100) / n, n * i)); 
+        }
         this.els.chartCanvas.style.display = 'block'; this.els.chartEmpty.style.display = 'none';
         this.chart = new Chart(this.els.chartCanvas, {
           type: 'line',
